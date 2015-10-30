@@ -2,6 +2,7 @@ package com.EnergyMonitor;
 
 import com.google.appengine.api.datastore.Query;
 
+import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.googlecode.objectify.ObjectifyService;
 
@@ -21,12 +22,24 @@ public class ReadDataServlet extends HttpServlet {
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     resp.setContentType("application/json");
+    String history = req.getParameter("history");
+    // Default history goes back 12 hours
+    int historyHours = -12;
+    if (!Strings.isNullOrEmpty(history)) {
+      try {
+        historyHours = Integer.parseInt(history);
+        historyHours = -historyHours;
+      } catch (NumberFormatException e) {
+        resp.getWriter().write("Error, unable to parse value: " + history + " as int");
+        return;
+      }
+    }
     Gson gson = new Gson();
     // Get a time which represents 24 hours before the current time as the starting point for our daily graph
     Date currentTime = new Date();
     Calendar cal = Calendar.getInstance();
     cal.setTime(currentTime);
-    cal.add(Calendar.HOUR, -24);
+    cal.add(Calendar.HOUR, historyHours);
     Date filterTime = cal.getTime();
     List<Measurement> measurements = ObjectifyService.ofy()
         .load()

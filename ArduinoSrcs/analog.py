@@ -1,4 +1,4 @@
-import time, os, lcdlib, urllib2
+import time, os, lcdlib, urllib2, datetime
 
 NOISE_READING = 20 #By default we assume the noise inherent in the system contributes to 30 units of arduino DAC reading
 INTEGRAL_NOISE = 1.7
@@ -13,6 +13,8 @@ CURRENT_VOLTAGE_DROP_FACTOR = 0.00384
 
 # The number of watts delta we need from the previous reading before we trigger a new upload event
 POWER_UPLOAD_DIFFERENCE_THRESHOLD = 5.0
+# Max number of seconds we should wait before saving another record, even if it hasn't changed
+MIN_UPLOAD_FREQUENCY_SECS = 45
 
 def read_pin_three():
     file = open('/proc/adc3', 'r')
@@ -37,7 +39,9 @@ def get_power(list_of_samples):
 def upload_data(power):
     try:
         response = urllib2.urlopen('http://1.energymonitor-1090.appspot.com/saveData?measurement=' + power).read()
-        lcdlib .print_second_line(response[:16])
+        timestamp = datetime.datetime.now() + datetime.timedelta(hours=-8)
+        lcdlib.print_second_line('L' + power + '@' + timestamp.strftime('%H:%M:%S'))
+        print power + '@' + timestamp.strftime('%H:%M:%S')
     except urllib2.HTTPError:
         lcdlib.print_second_line("HTTP Error")
 
@@ -46,6 +50,7 @@ counter = 0
 samples = []
 lcdlib.init_lcd()
 previous_power = 0.0
+meta_counter = 0
 
 while(True):
     samples += [read_pin_three()]
@@ -57,10 +62,13 @@ while(True):
         power *= INTEGRAL_MULTIPLIER * ((120 + NOLOAD_VOLTAGE_GAIN - (power * CURRENT_VOLTAGE_DROP_FACTOR)) / 120)
         if power < 0:
             power = 0.0
-        if (abs(power - previous_power) > POWER_UPLOAD_DIFFERENCE_THRESHOLD):
+        if (abs(power - previous_power) > POWER_UPLOAD_DIFFERENCE_THRESHOLD or meta_counter > MIN_UPLOAD_FREQUENCY_SECS):
             upload_data(str.format("{:.2f}", power))
+            meta_counter = 0
             previous_power = power
-        lcdlib.print_first_line(str.format("{:.2f}W", power))
+        current_time = datetime.datetime.now() + datetime.timedelta(hours=-8)
+        lcdlib.print_first_line(str.format("{:.2f}W", power) + " " + current_time.strftime('%H:%M:%S'))
         counter = 0
+        meta_counter += 1
         samples = []
 
