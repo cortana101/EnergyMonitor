@@ -39,7 +39,7 @@ def get_power(list_of_samples):
 def upload_data(power):
     try:
         response = urllib2.urlopen('http://1.energymonitor-1090.appspot.com/saveData?measurement=' + power).read()
-        timestamp = datetime.datetime.now() + datetime.timedelta(hours=-8)
+        timestamp = datetime.datetime.now()
         lcdlib.print_second_line('L' + power + '@' + timestamp.strftime('%H:%M:%S'))
         print power + '@' + timestamp.strftime('%H:%M:%S')
     except urllib2.HTTPError:
@@ -66,7 +66,7 @@ while(True):
             upload_data(str.format("{:.2f}", power))
             meta_counter = 0
             previous_power = power
-        current_time = datetime.datetime.now() + datetime.timedelta(hours=-8)
+        current_time = datetime.datetime.now()
         lcdlib.print_first_line(str.format("{:.2f}W", power) + " " + current_time.strftime('%H:%M:%S'))
         counter = 0
         meta_counter += 1
