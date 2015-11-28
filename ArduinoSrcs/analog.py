@@ -36,14 +36,28 @@ def get_power(list_of_samples):
     integral /= float(len(list_of_samples))
     return integral - INTEGRAL_NOISE
 
+def log_write(timestamp, logstring):
+    file_name = timestamp.strftime('%Y%m%d')
+    f = open('logs/' + file_name + '.txt', 'a')
+    f.write(logstring + '\n')
+    f.close()
+
 def upload_data(power):
     try:
-        response = urllib2.urlopen('http://1.energymonitor-1090.appspot.com/saveData?measurement=' + power).read()
         timestamp = datetime.datetime.now()
+        response = urllib2.urlopen('http://1.energymonitor-1090.appspot.com/saveData?measurement=' + power).read()
         lcdlib.print_second_line('L' + power + '@' + timestamp.strftime('%H:%M:%S'))
-        print power + '@' + timestamp.strftime('%H:%M:%S')
+	log_string = power + '@' + timestamp.strftime('%H:%M:%S')
+	log_write(timestamp, log_string)
+        print log_string
     except urllib2.HTTPError:
-        lcdlib.print_second_line("HTTP Error")
+	error_string = 'Http Error @' + timestamp.strftime('%H:%M:%S')
+	log_write(timestamp, error_string)
+        lcdlib.print_second_line(error_string)
+    except urllib2.URLError:
+	error_string = "URL error @" + timestamp.strftime('%H:%M:%S')
+	log_write(timestamp, error_string)
+	lcdlib.print_second_line(error_string)
 
 # use a counter to determine sampling periods
 counter = 0
